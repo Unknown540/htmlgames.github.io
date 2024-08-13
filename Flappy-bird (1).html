@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flappy Bird Clone</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <script src="script.js"></script>
+</body>
+</html><style>body {
+  margin: 0;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #70c5ce;
+}
+
+canvas {
+  border: 1px solid #000;
+  background-color: #70c5ce;
+}
+
+#startMenu {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  width: 100%;
+  height: 100%;
+}
+
+#startButton {
+  padding: 10px 20px;
+  font-size: 20px;
+  background-color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}</style><script>const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const startMenu = document.createElement('div');
+const startButton = document.createElement('button');
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+startMenu.id = 'startMenu';
+startButton.id = 'startButton';
+startButton.textContent = 'Start Game';
+
+startMenu.appendChild(startButton);
+document.body.appendChild(startMenu);
+
+const bird = {
+  x: 50,
+  y: 150,
+  width: 20,
+  height: 20,
+  gravity: 0.3,
+  lift: -7,
+  velocity: 0
+};
+
+const pipes = [];
+const pipeWidth = 30;
+const pipeGap = 120;
+let frame = 0;
+let score = 0;
+let highScore = 0;
+let gameStarted = false;
+
+// Add touch control
+canvas.addEventListener('touchstart', () => {
+  if (gameStarted) bird.velocity = bird.lift;
+});
+
+document.addEventListener('keydown', () => {
+  if (gameStarted) bird.velocity = bird.lift;
+});
+
+startButton.addEventListener('click', () => {
+  startMenu.style.display = 'none';
+  gameStarted = true;
+  resetGame();
+  gameLoop();
+});
+
+function drawBird() {
+  ctx.fillStyle = 'yellow';
+  ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
+}
+
+function updateBird() {
+  bird.velocity += bird.gravity;
+  bird.y += bird.velocity;
+
+  if (bird.y + bird.height > canvas.height) {
+    bird.y = canvas.height - bird.height;
+    bird.velocity = 0;
+  } else if (bird.y < 0) {
+    bird.y = 0;
+    bird.velocity = 0;
+  }
+}
+
+function drawPipes() {
+  ctx.fillStyle = 'green';
+
+  pipes.forEach(pipe => {
+    ctx.fillRect(pipe.x, 0, pipeWidth, pipe.top);
+    ctx.fillRect(pipe.x, pipe.bottom, pipeWidth, canvas.height - pipe.bottom);
+  });
+}
+
+function updatePipes() {
+  if (frame % 90 === 0) {
+    const top = Math.random() * (canvas.height / 2);
+    const bottom = top + pipeGap;
+
+    pipes.push({
+      x: canvas.width,
+      top: top,
+      bottom: bottom
+    });
+  }
+
+  pipes.forEach(pipe => {
+    pipe.x -= 2;
+
+    if (pipe.x + pipeWidth < 0) {
+      pipes.shift();
+      score++;
+      if (score > highScore) highScore = score;
+    }
+  });
+}
+
+function checkCollision() {
+  pipes.forEach(pipe => {
+    if (bird.x + bird.width > pipe.x && bird.x < pipe.x + pipeWidth) {
+      if (bird.y < pipe.top || bird.y + bird.height > pipe.bottom) {
+        gameOver();
+      }
+    }
+  });
+}
+
+function gameOver() {
+  gameStarted = false;
+  startMenu.style.display = 'flex';
+  startButton.textContent = 'Restart Game';
+}
+
+function resetGame() {
+  bird.y = 150;
+  bird.velocity = 0;
+  pipes.length = 0;
+  score = 0;
+}
+
+function drawScore() {
+  ctx.fillStyle = 'white';
+  ctx.font = '20px Arial';
+  ctx.fillText(`Score: ${score}`, 10, 20);
+  ctx.fillText(`High Score: ${highScore}`, 10, 50);
+}
+
+function gameLoop() {
+  if (!gameStarted) return;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  drawBird();
+  updateBird();
+
+  drawPipes();
+  updatePipes();
+
+  checkCollision();
+  drawScore();
+
+  frame++;
+  requestAnimationFrame(gameLoop);
+}
+
+// Initialize high score from local storage if available
+if (localStorage.getItem('highScore')) {
+  highScore = parseInt(localStorage.getItem('highScore'), 10);
+}
+
+function updateHighScore() {
+  localStorage.setItem('highScore', highScore);
+}
+
+// Update high score in local storage when the game ends
+window.addEventListener('beforeunload', updateHighScore);</script>
